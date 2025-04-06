@@ -19,7 +19,7 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
     [key: string]: { selected?: string; comment?: string };
   }>({});
 
-  // Whenever taskName or responses change, call onChange so that the parent stays updated.
+  // Notify parent when internal state changes.
   useEffect(() => {
     if (onChange) {
       onChange({ task: taskName, responses });
@@ -53,14 +53,20 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
     }
   };
 
+  // Reset this form's state after confirmation.
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to reset this form?")) {
+      setTaskName(data.task || "");
+      setResponses({});
+    }
+  };
+
   // Individual download: JSON export
   const downloadJSON = () => {
-    // Ensure every field is included.
     const responsesToDownload = data.fields.reduce((acc, field) => {
       const res = responses[field.id] || {};
       acc[field.id] = {
         selected: res.selected && res.selected !== "" ? res.selected : null,
-        // For text fields, export as an empty string if not entered.
         comment: res.comment && res.comment !== "" ? res.comment : "",
       };
       return acc;
@@ -84,14 +90,11 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
   // Individual download: Convert responses to CSV format
   const convertResponsesToCSV = () => {
     const csvRows = [];
-    // header row
     csvRows.push("questionId,selected,comment");
-    // Iterate over all fields to include missing ones.
     data.fields.forEach((field) => {
       const res = responses[field.id] || {};
       const selected =
         res.selected && res.selected !== "" ? res.selected : "null";
-      // For text fields like comment, output empty string if not entered.
       const comment =
         res.comment && res.comment !== ""
           ? `"${res.comment.replace(/"/g, '""')}"`
@@ -204,6 +207,16 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
           className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
         >
           Download CSV
+        </button>
+      </div>
+
+      {/* Reset form button */}
+      <div className="mt-4">
+        <button
+          onClick={handleReset}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+        >
+          Reset Form
         </button>
       </div>
     </div>

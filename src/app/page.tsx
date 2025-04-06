@@ -14,6 +14,8 @@ export default function Home() {
   const [formResponses, setFormResponses] = useState<{
     [key: number]: XFormSubmitData;
   }>({});
+  // Reset counter to force remount of each XForm component.
+  const [resetCounter, setResetCounter] = useState(0);
 
   const handleParticipantNameChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -32,6 +34,20 @@ export default function Home() {
     setFormResponses((prev) => ({ ...prev, [index]: data }));
   };
 
+  // Global reset: prompts the user; if confirmed, resets participant details and forces all forms to remount.
+  const handleGlobalReset = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to reset all forms? This will clear all responses."
+      )
+    ) {
+      setParticipantName(xPageData.participantName || "");
+      setOverallComment(xPageData.comment || "");
+      setFormResponses({});
+      setResetCounter((prev) => prev + 1);
+    }
+  };
+
   // Download aggregated JSON
   const downloadAggregatedJSON = () => {
     const aggregatedData = {
@@ -40,7 +56,6 @@ export default function Home() {
       forms: xPageData.forms.map((form, index) => ({
         title: form.title,
         task: form.task,
-        // If a form hasn't been changed/submitted, include all fields with null/empty defaults.
         responses: formResponses[index]
           ? formResponses[index].responses
           : form.fields.reduce((acc, field) => {
@@ -62,12 +77,10 @@ export default function Home() {
 
   // Download aggregated CSV
   const downloadAggregatedCSV = () => {
-    // CSV header: participantName, overallComment, formTitle, task, questionId, selected, comment
     const csvRows = [
       "participantName,overallComment,formTitle,task,questionId,selected,comment",
     ];
     xPageData.forms.forEach((form, index) => {
-      // Use the parent's stored data; if not available, generate defaults.
       const responses =
         formResponses[index]?.responses ||
         form.fields.reduce((acc, field) => {
@@ -139,9 +152,10 @@ export default function Home() {
 
         {/* Render each form in its own card */}
         {xPageData.forms.map((form, index) => (
-          <div key={index} className="bg-white shadow-lg rounded-lg p-8">
-            {/* XForm now renders its own title, description, task input, and individual download buttons.
-                The onChange prop lifts its state into Home. */}
+          <div
+            key={`${index}-${resetCounter}`}
+            className="bg-white shadow-lg rounded-lg p-8"
+          >
             <XForm
               data={form}
               onSubmit={(data) => handleFormChange(index, data)}
@@ -150,8 +164,8 @@ export default function Home() {
           </div>
         ))}
 
-        {/* Global aggregated download buttons */}
-        <div className="flex space-x-4">
+        {/* Global aggregated download and reset buttons */}
+        <div className="flex flex-wrap gap-4">
           <button
             onClick={downloadAggregatedJSON}
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
@@ -163,6 +177,12 @@ export default function Home() {
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
           >
             Download Aggregated CSV
+          </button>
+          <button
+            onClick={handleGlobalReset}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+          >
+            Reset All Forms
           </button>
         </div>
       </div>
