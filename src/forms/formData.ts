@@ -11,3 +11,15 @@ export interface FormOption {
     commentPlaceholder?: string;
   }
   
+  export interface XFormData {
+    task?: string;
+    title: string;
+    Description?: string;
+    fields: FormItem[];
+  }
+
+  export interface XPage {
+    participantName: string; 
+    comment?: string;
+    forms: XFormData[];
+  }

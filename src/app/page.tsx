@@ -1,103 +1,171 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { xPageData } from "@/forms/PageData";
+import XForm, { XFormSubmitData } from "./components/XForm";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Participant details
+  const [participantName, setParticipantName] = useState(
+    xPageData.participantName || ""
+  );
+  const [overallComment, setOverallComment] = useState(xPageData.comment || "");
+  // Aggregated responses for each form (key is form index)
+  const [formResponses, setFormResponses] = useState<{
+    [key: number]: XFormSubmitData;
+  }>({});
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleParticipantNameChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setParticipantName(e.target.value);
+  };
+
+  const handleOverallCommentChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setOverallComment(e.target.value);
+  };
+
+  // Called when an individual form's state changes (or is submitted)
+  const handleFormChange = (index: number, data: XFormSubmitData) => {
+    setFormResponses((prev) => ({ ...prev, [index]: data }));
+  };
+
+  // Download aggregated JSON
+  const downloadAggregatedJSON = () => {
+    const aggregatedData = {
+      participantName,
+      overallComment,
+      forms: xPageData.forms.map((form, index) => ({
+        title: form.title,
+        task: form.task,
+        // If a form hasn't been changed/submitted, include all fields with null/empty defaults.
+        responses: formResponses[index]
+          ? formResponses[index].responses
+          : form.fields.reduce((acc, field) => {
+              acc[field.id] = { selected: null, comment: "" };
+              return acc;
+            }, {} as { [key: string]: { selected: string | null; comment: string } }),
+      })),
+    };
+
+    const jsonStr = JSON.stringify(aggregatedData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "aggregated_responses.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Download aggregated CSV
+  const downloadAggregatedCSV = () => {
+    // CSV header: participantName, overallComment, formTitle, task, questionId, selected, comment
+    const csvRows = [
+      "participantName,overallComment,formTitle,task,questionId,selected,comment",
+    ];
+    xPageData.forms.forEach((form, index) => {
+      // Use the parent's stored data; if not available, generate defaults.
+      const responses =
+        formResponses[index]?.responses ||
+        form.fields.reduce((acc, field) => {
+          acc[field.id] = { selected: null, comment: "" };
+          return acc;
+        }, {} as { [key: string]: { selected: string | null; comment: string } });
+      Object.entries(responses).forEach(([questionId, response]) => {
+        const selected =
+          response.selected && response.selected !== ""
+            ? response.selected
+            : "null";
+        const comment =
+          response.comment && response.comment !== ""
+            ? `"${response.comment.replace(/"/g, '""')}"`
+            : "";
+        csvRows.push(
+          `"${participantName}","${overallComment}","${form.title}","${
+            form.task || ""
+          }",${questionId},${selected},${comment}`
+        );
+      });
+    });
+    const csvStr = csvRows.join("\n");
+    const blob = new Blob([csvStr], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "aggregated_responses.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
+      {/* Main container */}
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Participant details card */}
+        <div className="bg-white shadow-lg rounded-lg p-8">
+          <div className="mb-6">
+            <label
+              htmlFor="participantName"
+              className="block text-lg font-bold text-black mb-2"
+            >
+              Participant Name
+            </label>
+            <input
+              id="participantName"
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded text-lg text-black"
+              value={participantName}
+              onChange={handleParticipantNameChange}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+          <div>
+            <label
+              htmlFor="overallComment"
+              className="block text-lg font-bold text-black mb-2"
+            >
+              Overall Comment
+            </label>
+            <textarea
+              id="overallComment"
+              className="w-full p-2 border border-gray-300 rounded text-black"
+              value={overallComment}
+              onChange={handleOverallCommentChange}
+            />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Render each form in its own card */}
+        {xPageData.forms.map((form, index) => (
+          <div key={index} className="bg-white shadow-lg rounded-lg p-8">
+            {/* XForm now renders its own title, description, task input, and individual download buttons.
+                The onChange prop lifts its state into Home. */}
+            <XForm
+              data={form}
+              onSubmit={(data) => handleFormChange(index, data)}
+              onChange={(data) => handleFormChange(index, data)}
+            />
+          </div>
+        ))}
+
+        {/* Global aggregated download buttons */}
+        <div className="flex space-x-4">
+          <button
+            onClick={downloadAggregatedJSON}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+          >
+            Download Aggregated JSON
+          </button>
+          <button
+            onClick={downloadAggregatedCSV}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+          >
+            Download Aggregated CSV
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

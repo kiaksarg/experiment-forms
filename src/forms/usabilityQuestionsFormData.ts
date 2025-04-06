@@ -1,6 +1,8 @@
-import { FormItem } from "./formData";
+import { XFormData } from "./formData";
 
-export const usabilityQuestionsFormData: FormItem[] = [
+export const usabilityQuestionsFormData: XFormData = {
+  title: "Usability Questions",
+  fields: [
     {
       id: "headControl",
       question: "I felt in control of the head rotation.",
@@ -94,5 +96,5 @@ export const usabilityQuestionsFormData: FormItem[] = [
         { value: 7, label: "Strongly agree" },
       ],
     },
-  ];
-  
+  ],
+};
