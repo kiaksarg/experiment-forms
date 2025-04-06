@@ -118,12 +118,6 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
 
   return (
     <div>
-      {/* Render form title and description */}
-      <h3 className="text-xl font-bold mb-2 text-black">{data.title}</h3>
-      {data.Description && (
-        <p className="mb-4 text-black">{data.Description}</p>
-      )}
-
       {/* Editable task input */}
       <div className="mb-12">
         <label
@@ -142,6 +136,12 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
           }
         />
       </div>
+
+      {/* Render form title and description */}
+      <h3 className="text-xl font-bold mb-2 text-black">{data.title}</h3>
+      {data.Description && (
+        <p className="mb-4 text-black">{data.Description}</p>
+      )}
 
       <form onSubmit={handleSubmit}>
         {data.fields.map((item) => (
