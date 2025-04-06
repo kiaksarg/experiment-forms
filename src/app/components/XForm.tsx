@@ -11,13 +11,21 @@ interface XFormProps {
   data: XFormData;
   onSubmit?: (data: XFormSubmitData) => void;
   onChange?: (data: XFormSubmitData) => void;
+  initialData?: XFormSubmitData;
 }
 
-const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
-  const [taskName, setTaskName] = useState(data.task || "");
+const XForm: React.FC<XFormProps> = ({
+  data,
+  onSubmit,
+  onChange,
+  initialData,
+}) => {
+  const [taskName, setTaskName] = useState(
+    initialData?.task || data.task || ""
+  );
   const [responses, setResponses] = useState<{
     [key: string]: { selected?: string; comment?: string };
-  }>({});
+  }>(initialData?.responses || {});
 
   // Notify parent when internal state changes.
   useEffect(() => {
