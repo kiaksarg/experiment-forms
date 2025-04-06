@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { xPageData } from "@/forms/PageData";
 import XForm, { XFormSubmitData } from "./components/XForm";
 
@@ -29,10 +29,21 @@ export default function Home() {
     setOverallComment(e.target.value);
   };
 
-  // Called when an individual form's state changes (or is submitted)
-  const handleFormChange = (index: number, data: XFormSubmitData) => {
-    setFormResponses((prev) => ({ ...prev, [index]: data }));
-  };
+  // Memoize the form change handler to keep its reference stable.
+  const handleFormChange = useCallback(
+    (index: number, data: XFormSubmitData) => {
+      setFormResponses((prev) => ({ ...prev, [index]: data }));
+    },
+    []
+  );
+
+  // Create memoized callbacks for each form.
+  const formCallbacks = useMemo(() => {
+    return xPageData.forms.map((_, index) => ({
+      onSubmit: (data: XFormSubmitData) => handleFormChange(index, data),
+      onChange: (data: XFormSubmitData) => handleFormChange(index, data),
+    }));
+  }, [xPageData.forms, handleFormChange]);
 
   // Global reset: prompts the user; if confirmed, resets participant details and forces all forms to remount.
   const handleGlobalReset = () => {
@@ -158,8 +169,8 @@ export default function Home() {
           >
             <XForm
               data={form}
-              onSubmit={(data) => handleFormChange(index, data)}
-              onChange={(data) => handleFormChange(index, data)}
+              onSubmit={formCallbacks[index].onSubmit}
+              onChange={formCallbacks[index].onChange}
             />
           </div>
         ))}
