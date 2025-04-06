@@ -186,12 +186,12 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
             )}
           </div>
         ))}
-        <button
+        {/* <button
           type="submit"
           className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
         >
           Submit
-        </button>
+        </button> */}
       </form>
 
       {/* Individual download buttons */}
@@ -208,10 +208,6 @@ const XForm: React.FC<XFormProps> = ({ data, onSubmit, onChange }) => {
         >
           Download CSV
         </button>
-      </div>
-
-      {/* Reset form button */}
-      <div className="mt-4">
         <button
           onClick={handleReset}
           className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"

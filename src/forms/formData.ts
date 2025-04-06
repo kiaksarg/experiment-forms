@@ -12,7 +12,9 @@ export interface FormOption {
   }
   
   export interface XFormData {
-    id: string;
+    id?: string;
+    groupId?: string;
+    name: string;
     task?: string;
     title: string;
     Description?: string;

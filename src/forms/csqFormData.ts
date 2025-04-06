@@ -2,7 +2,7 @@
 import { XFormData } from "./formData";
 
 export const csqFormData: XFormData = {
-  id: "CSQ-VR",
+  name: "CSQ-VR",
   title: "CyberSickness in Virtual Reality Questionnaire (CSQ‑VR)",
   Description:
     "Please, from 1 to 7, circle the response that better corresponds to the presence and intensity of the symptom.",

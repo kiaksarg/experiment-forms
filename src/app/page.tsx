@@ -2,96 +2,218 @@
 
 import React, {
   useState,
-  useCallback,
   useMemo,
-  createRef,
   useEffect,
+  createRef,
+  useCallback,
 } from "react";
+import { DragEndEvent } from "@dnd-kit/core";
+
 import { xPageData } from "@/forms/PageData";
+import { XFormData } from "@/forms/formData";
 import XForm, { XFormSubmitData } from "./components/XForm";
 
+import GroupsNavigationPanel from "./components/GroupsNavigationPanel";
+import FormsNavigationPanel from "./components/FormsNavigationPanel";
+
 export default function Home() {
-  // Participant details
   const [participantName, setParticipantName] = useState(
     xPageData.participantName || ""
   );
   const [overallComment, setOverallComment] = useState(xPageData.comment || "");
-  // Aggregated responses for each form (key is form index)
+  // Each form has: { id: string (UUID), groupId: string, fields: [...], task: ...}
+  const [allForms] = useState<XFormData[]>(xPageData.forms);
+
+  // 1) The user’s chosen group order
+  const [orderedGroups, setOrderedGroups] = useState(() => {
+    const uniqueGroups = Array.from(
+      new Set(allForms.map((f) => f.groupId ?? "default"))
+    );
+    return uniqueGroups;
+  });
+
+  // 2) For each group, store the order of forms
+  const [groupFormsOrder, setGroupFormsOrder] = useState<{
+    [groupId: string]: string[];
+  }>(() => {
+    const initial: { [gid: string]: string[] } = {};
+    orderedGroups.forEach((gid) => {
+      const key = gid ?? "default"; // Use "default" if gid is undefined
+      const formsOfGroup = allForms.filter(
+        (f) => (f.groupId ?? "default") === key
+      );
+      initial[gid] = formsOfGroup
+        .map((f) => f.id)
+        .filter((id): id is string => id !== undefined);
+    });
+    return initial;
+  });
+
+  // The user selects which group is "active"
+  const [activeGroup, setActiveGroup] = useState(orderedGroups[0] || "");
+
+  // The user selects which form is "active" within the active group
+  const [activeFormId, setActiveFormId] = useState("");
+
+  // Aggregated responses for each form in final flatten order
   const [formResponses, setFormResponses] = useState<{
-    [key: number]: XFormSubmitData;
+    [index: number]: XFormSubmitData;
   }>({});
-  // Reset counter to force remount of each XForm component.
-  const [resetCounter, setResetCounter] = useState(0);
-  // Active form index for highlighting navigation
-  const [activeFormIndex, setActiveFormIndex] = useState(0);
 
-  // Create refs for each form container to allow navigation.
-  const formRefs = useMemo(
-    () => xPageData.forms.map(() => createRef<HTMLDivElement>()),
-    [xPageData.forms]
-  );
+  // Build the final display order by flattening groups
+  const allFormsInDisplayOrder = useMemo(() => {
+    const result: XFormData[] = [];
+    orderedGroups.forEach((gid) => {
+      const formIds = groupFormsOrder[gid] || [];
+      formIds.forEach((fid) => {
+        const form = allForms.find((f) => f.id === fid);
+        if (form) result.push(form);
+      });
+    });
+    return result;
+  }, [orderedGroups, groupFormsOrder, allForms]);
 
-  const handleParticipantNameChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+  // Intersection Observers
+  // 1) Each group container in the center column
+  const groupContainerRefs = useMemo(() => {
+    return orderedGroups.map(() => createRef<HTMLDivElement>());
+  }, [orderedGroups]);
+
+  // 2) Each form container in the center column
+  const formContainerRefs = useMemo(() => {
+    return allFormsInDisplayOrder.map(() => createRef<HTMLDivElement>());
+  }, [allFormsInDisplayOrder]);
+
+  /**
+   * Return the forms (in order) for the active group
+   */
+  const getActiveGroupForms = useMemo(() => {
+    const formIds = groupFormsOrder[activeGroup] || [];
+    return formIds
+      .map((id) => {
+        const frm = allForms.find((x) => x.id === id);
+        return frm ? { formId: frm.id, label: frm.task || "No Task" } : null;
+      })
+      .filter((x): x is { formId: string; label: string } => !!x);
+  }, [activeGroup, groupFormsOrder, allForms]);
+
+  // DRAG HANDLERS
+  // Groups reorder
+  const handleGroupDragEnd = (event: DragEndEvent, newGroups: string[]) => {
+    setOrderedGroups(newGroups);
+  };
+  // Forms reorder within the active group
+  const handleFormsDragEnd = (
+    event: DragEndEvent,
+    newItems: { formId: string; label: string }[]
   ) => {
-    setParticipantName(e.target.value);
+    setGroupFormsOrder((prev) => ({
+      ...prev,
+      [activeGroup]: newItems.map((x) => x.formId),
+    }));
   };
 
-  const handleOverallCommentChange = (
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
-    setOverallComment(e.target.value);
+  // CLICK HANDLERS
+  const handleGroupClick = (groupId: string) => {
+    setActiveGroup(groupId);
+    // Optionally scroll to that group's container
+    const gIndex = orderedGroups.indexOf(groupId);
+    groupContainerRefs[gIndex].current?.scrollIntoView({ behavior: "smooth" });
+  };
+  const handleFormClick = (formId: string) => {
+    setActiveFormId(formId);
+    // Optionally scroll to that form in the center
+    const index = allFormsInDisplayOrder.findIndex((f) => f.id === formId);
+    if (index >= 0) {
+      formContainerRefs[index].current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
-  // Called when an individual form's state changes (or is submitted)
+  // Building XForm callbacks
+  const formCallbacks = useMemo(() => {
+    return allFormsInDisplayOrder.map((_, index) => ({
+      onSubmit: (data: XFormSubmitData) => handleFormChange(index, data),
+      onChange: (data: XFormSubmitData) => handleFormChange(index, data),
+    }));
+  }, [allFormsInDisplayOrder]);
+
   const handleFormChange = useCallback(
-    (index: number, data: XFormSubmitData) => {
-      setFormResponses((prev) => ({ ...prev, [index]: data }));
+    (absoluteIndex: number, data: XFormSubmitData) => {
+      setFormResponses((prev) => ({ ...prev, [absoluteIndex]: data }));
     },
     []
   );
 
-  // Memoize callbacks for each form.
-  const formCallbacks = useMemo(() => {
-    return xPageData.forms.map((_, index) => ({
-      onSubmit: (data: XFormSubmitData) => handleFormChange(index, data),
-      onChange: (data: XFormSubmitData) => handleFormChange(index, data),
-    }));
-  }, [xPageData.forms, handleFormChange]);
+  // Intersection Observer for groups
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const gIndex = Number(
+              entry.target.getAttribute("data-group-index")
+            );
+            setActiveGroup(orderedGroups[gIndex]);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
 
-  // Global reset: prompts the user; if confirmed, resets participant details and forces all forms to remount.
+    groupContainerRefs.forEach((ref, idx) => {
+      if (ref.current) {
+        ref.current.setAttribute("data-group-index", idx.toString());
+        obs.observe(ref.current);
+      }
+    });
+    return () => obs.disconnect();
+  }, [groupContainerRefs, orderedGroups]);
+
+  // Intersection Observer for forms
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const fIndex = Number(entry.target.getAttribute("data-form-index"));
+            const formObj = allFormsInDisplayOrder[fIndex];
+            if (formObj && formObj.id !== undefined)
+              setActiveFormId(formObj.id);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    formContainerRefs.forEach((ref, idx) => {
+      if (ref.current) {
+        ref.current.setAttribute("data-form-index", idx.toString());
+        obs.observe(ref.current);
+      }
+    });
+    return () => obs.disconnect();
+  }, [formContainerRefs, allFormsInDisplayOrder]);
+
+  // Basic resets and downloads
   const handleGlobalReset = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to reset all forms? This will clear all responses."
-      )
-    ) {
+    if (window.confirm("Are you sure you want to reset all forms?")) {
       setParticipantName(xPageData.participantName || "");
       setOverallComment(xPageData.comment || "");
       setFormResponses({});
-      setResetCounter((prev) => prev + 1);
     }
   };
-
-  // Download aggregated JSON
   const downloadAggregatedJSON = () => {
-    const aggregatedData = {
+    const formsInOrder = allFormsInDisplayOrder.map((f, idx) => {
+      const resp = formResponses[idx]?.responses || {};
+      return { groupId: f.groupId, task: f.task, responses: resp };
+    });
+    const data = {
       participantName,
       overallComment,
-      forms: xPageData.forms.map((form, index) => ({
-        title: form.title,
-        task: form.task,
-        responses: formResponses[index]
-          ? formResponses[index].responses
-          : form.fields.reduce((acc, field) => {
-              acc[field.id] = { selected: null, comment: "" };
-              return acc;
-            }, {} as { [key: string]: { selected: string | null; comment: string } }),
-      })),
+      forms: formsInOrder,
     };
-
-    const jsonStr = JSON.stringify(aggregatedData, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
+    const str = JSON.stringify(data, null, 2);
+    const blob = new Blob([str], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -100,12 +222,11 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // Download aggregated CSV
   const downloadAggregatedCSV = () => {
     const csvRows = [
       "participantName,overallComment,formTitle,task,questionId,selected,comment",
     ];
-    xPageData.forms.forEach((form, index) => {
+    allFormsInDisplayOrder.forEach((form, index) => {
       const responses =
         formResponses[index]?.responses ||
         form.fields.reduce((acc, field) => {
@@ -138,153 +259,111 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // Set up IntersectionObserver to track which form is active.
-  React.useEffect(() => {
-    const observerOptions = {
-      root: null,
-      threshold: 0.5,
-    };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const index = Number(entry.target.getAttribute("data-index"));
-          setActiveFormIndex(index);
-        }
-      });
-    }, observerOptions);
-
-    formRefs.forEach((ref, index) => {
-      if (ref.current) {
-        // Set data-index on each observed element.
-        ref.current.setAttribute("data-index", index.toString());
-        observer.observe(ref.current);
-      }
-    });
-    return () => {
-      observer.disconnect();
-    };
-  }, [formRefs]);
-
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
-      {/* Outer container with a 5-column grid:
-          Left panel: navigation,
-          Middle: forms,
-          Right panel: side panel */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
-        {/* Left navigation panel (fixed) */}
-        <div className="md:col-span-1">
-          <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 space-y-4">
-            <h4 className="text-lg font-bold text-gray-900">
-              Forms Navigation
-            </h4>
-            <ul className="space-y-2">
-              {xPageData.forms.map((form, index) => (
-                <li key={index}>
-                  <button
-                    onClick={() =>
-                      formRefs[index].current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                      })
-                    }
-                    className={`w-full text-left font-medium px-3 py-2 rounded transition-colors ${
-                      activeFormIndex === index
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                    }`}
-                  >
-                    <span>{}</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold bg-gray-200 text-gray-700 px-2 py-1 rounded mx-1 text-center">
-                        {form?.id}
-                      </span>
-                      <span className="mx-1">{`${index + 1}- ${
-                        form?.task
-                      }`}</span>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* LEFT COL: Groups nav + Forms nav for the active group */}
+        <div className="md:col-span-1 space-y-4">
+          <GroupsNavigationPanel
+            groups={orderedGroups}
+            activeGroup={activeGroup}
+            onGroupClick={handleGroupClick}
+            onDragEnd={handleGroupDragEnd}
+          />
+          <FormsNavigationPanel
+            forms={getActiveGroupForms}
+            activeFormId={activeFormId}
+            onDragEnd={handleFormsDragEnd}
+            onFormClick={handleFormClick}
+          />
         </div>
 
-        {/* Middle column: forms (spanning 3 columns) */}
+        {/* MIDDLE COL: Center display of all groups, each group's forms in local order */}
         <div className="md:col-span-3 space-y-8">
-          {xPageData.forms.map((form, index) => (
-            <div
-              key={`${index}-${resetCounter}`}
-              ref={formRefs[index]}
-              className="bg-white shadow-lg rounded-lg p-8"
-            >
-              <XForm
-                data={form}
-                onSubmit={formCallbacks[index].onSubmit}
-                onChange={formCallbacks[index].onChange}
-              />
-            </div>
-          ))}
+          {orderedGroups.map((gid, gIndex) => {
+            const formIds = groupFormsOrder[gid] || [];
+            return (
+              <div
+                key={gid}
+                ref={groupContainerRefs[gIndex]}
+                className="bg-white shadow-lg rounded-lg p-8"
+              >
+                <h2 className="text-xl font-bold mb-4">{`Group: ${gid}`}</h2>
+                {formIds.map((fid) => {
+                  const formObj = allForms.find((ff) => ff.id === fid);
+                  if (!formObj) return null;
+                  const absoluteIndex = allFormsInDisplayOrder.indexOf(formObj);
+                  return (
+                    <div
+                      key={fid}
+                      ref={formContainerRefs[absoluteIndex]}
+                      className="mb-6"
+                    >
+                      <XForm
+                        data={formObj}
+                        onSubmit={formCallbacks[absoluteIndex].onSubmit}
+                        onChange={formCallbacks[absoluteIndex].onChange}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Right column: side panel (sticky) */}
+        {/* RIGHT COL: Participant details + Download/Reset */}
         <div className="md:col-span-1">
           <div className="sticky top-4 space-y-8">
-            {/* Participant details card */}
+            {/* Participant info */}
             <div className="bg-white shadow-lg rounded-lg p-8">
-              <div className="mb-6">
-                <label
-                  htmlFor="participantName"
-                  className="block text-lg font-bold text-black mb-2"
-                >
-                  Participant Name
-                </label>
-                <input
-                  id="participantName"
-                  type="text"
-                  className="w-full p-2 border border-gray-300 rounded text-lg text-black"
-                  value={participantName}
-                  onChange={handleParticipantNameChange}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="overallComment"
-                  className="block text-lg font-bold text-black mb-2"
-                >
-                  Overall Comment
-                </label>
-                <textarea
-                  id="overallComment"
-                  className="w-full p-2 border border-gray-300 rounded text-black"
-                  value={overallComment}
-                  onChange={handleOverallCommentChange}
-                />
-              </div>
+              <label
+                className="block text-lg font-bold text-black mb-2"
+                htmlFor="participantName"
+              >
+                Participant Name
+              </label>
+              <input
+                id="participantName"
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded text-lg text-black mb-4"
+                value={participantName}
+                onChange={(e) => setParticipantName(e.target.value)}
+              />
+              <label
+                className="block text-lg font-bold text-black mb-2"
+                htmlFor="overallComment"
+              >
+                Overall Comment
+              </label>
+              <textarea
+                id="overallComment"
+                className="w-full p-2 border border-gray-300 rounded text-black"
+                value={overallComment}
+                onChange={(e) => setOverallComment(e.target.value)}
+              />
             </div>
 
-            {/* Global download and reset buttons */}
+            {/* Download, reset, etc */}
             <div className="bg-white shadow-lg rounded-lg p-8">
-              <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={downloadAggregatedJSON}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-                >
-                  Download Aggregated JSON
-                </button>
-                <button
-                  onClick={downloadAggregatedCSV}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-                >
-                  Download Aggregated CSV
-                </button>
-                <button
-                  onClick={handleGlobalReset}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-                >
-                  Reset All Forms
-                </button>
-              </div>
+              <button
+                onClick={downloadAggregatedJSON}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
+              >
+                Download JSON
+              </button>
+              <button
+                onClick={downloadAggregatedCSV}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full mt-4"
+              >
+                Download CSV
+              </button>
+              <button
+                onClick={handleGlobalReset}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition w-full mt-4"
+              >
+                Reset All Forms
+              </button>
             </div>
           </div>
         </div>
