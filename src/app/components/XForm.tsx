@@ -14,6 +14,25 @@ interface XFormProps {
   initialData?: XFormSubmitData;
 }
 
+// Helper function to initialize default responses for range fields.
+const initializeResponses = (data: XFormData) => {
+  const initialResponses: {
+    [key: string]: { selected?: string; comment?: string };
+  } = {};
+  data.fields.forEach((field) => {
+    if (field.type === "range") {
+      const defaultVal =
+        field.defaultValue !== undefined
+          ? field.defaultValue
+          : field.min !== undefined
+          ? String(field.min)
+          : "0";
+      initialResponses[field.id] = { selected: defaultVal };
+    }
+  });
+  return initialResponses;
+};
+
 const XForm: React.FC<XFormProps> = ({
   data,
   onSubmit,
@@ -25,7 +44,7 @@ const XForm: React.FC<XFormProps> = ({
   );
   const [responses, setResponses] = useState<{
     [key: string]: { selected?: string; comment?: string };
-  }>(initialData?.responses || {});
+  }>(initialData?.responses || initializeResponses(data));
 
   // Notify parent when internal state changes.
   useEffect(() => {
@@ -65,11 +84,11 @@ const XForm: React.FC<XFormProps> = ({
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset this form?")) {
       setTaskName(data.task || "");
-      setResponses({});
+      setResponses(initializeResponses(data));
     }
   };
 
-  // Individual download: JSON export
+  // JSON download helper.
   const downloadJSON = () => {
     const responsesToDownload = data.fields.reduce((acc, field) => {
       const res = responses[field.id] || {};
@@ -95,7 +114,7 @@ const XForm: React.FC<XFormProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Individual download: Convert responses to CSV format
+  // CSV conversion helper.
   const convertResponsesToCSV = () => {
     const csvRows = [];
     csvRows.push("questionId,selected,comment");
@@ -112,7 +131,7 @@ const XForm: React.FC<XFormProps> = ({
     return csvRows.join("\n");
   };
 
-  // Individual download: CSV export
+  // CSV download helper.
   const downloadCSV = () => {
     const csvStr = convertResponsesToCSV();
     const blob = new Blob([csvStr], { type: "text/csv" });
@@ -155,33 +174,88 @@ const XForm: React.FC<XFormProps> = ({
         {data.fields.map((item) => (
           <div key={item.id} className="mb-12">
             <p className="mb-4 text-lg font-bold text-black">{item.question}</p>
-            <div className="flex justify-between items-center">
-              {item.options.map((option) => (
-                <label
-                  key={option.value}
-                  className="flex flex-col items-center text-black flex-1"
-                >
-                  <div className="flex items-center justify-center h-[10px] w-full">
-                    <input
-                      type="radio"
-                      name={item.id}
-                      value={option.value}
-                      checked={
-                        responses[item.id]?.selected === String(option.value)
-                      }
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        handleRadioChange(item.id, e.target.value)
-                      }
-                      className="transform scale-150"
-                    />
-                  </div>
-                  <span className="text-sm mt-2">{option.value}</span>
-                  <div className="mt-2 text-sm text-gray-700 text-center max-w-[100px] h-[36px] flex items-center justify-center">
-                    {option.label}
-                  </div>
-                </label>
-              ))}
-            </div>
+
+            {/* Radio type (default) */}
+            {(!item.type || item.type === "radio") && item.options && (
+              <div className="flex justify-between items-center">
+                {item.options.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex flex-col items-center text-black flex-1"
+                  >
+                    <div className="flex items-center justify-center h-[10px] w-full">
+                      <input
+                        type="radio"
+                        name={item.id}
+                        value={option.value}
+                        checked={
+                          responses[item.id]?.selected === String(option.value)
+                        }
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          handleRadioChange(item.id, e.target.value)
+                        }
+                        className="transform scale-150"
+                      />
+                    </div>
+                    <span className="text-sm mt-2">{option.value}</span>
+                    <div className="mt-2 text-sm text-gray-700 text-center max-w-[100px] h-[36px] flex items-center justify-center">
+                      {option.label}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Input type */}
+            {item.type === "input" && (
+              <div className="w-full">
+                <input
+                  type="text"
+                  placeholder={item.inputPlaceholder || "Enter value"}
+                  value={responses[item.id]?.selected || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    handleRadioChange(item.id, e.target.value)
+                  }
+                  className="w-full p-2 border border-gray-300 rounded text-lg text-black"
+                />
+              </div>
+            )}
+
+            {/* Range type */}
+            {item.type === "range" && (
+              <div className="flex flex-col items-center">
+                {/* Labels at the ends of the range */}
+                <div className="w-85 flex justify-between">
+                  <span className="text-sm text-black">
+                    {item.minLabel || "Very Low"}
+                  </span>
+                  <span className="text-sm text-black">
+                    {item.maxLabel || "Very High"}
+                  </span>
+                </div>
+                {/* Range slider with a fixed, smaller width */}
+                <input
+                  type="range"
+                  min={item.min}
+                  max={item.max}
+                  value={
+                    responses[item.id]?.selected !== undefined
+                      ? responses[item.id]?.selected
+                      : String(item.min)
+                  }
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    handleRadioChange(item.id, e.target.value)
+                  }
+                  className="w-85 h-3"
+                />
+                <div className="text-center mt-2 text-black">
+                  {responses[item.id]?.selected !== undefined
+                    ? responses[item.id]?.selected
+                    : item.min}
+                </div>
+              </div>
+            )}
+
             {item.hasComment && (
               <textarea
                 className="mt-4 w-full p-2 border border-gray-300 rounded text-black"
@@ -194,15 +268,9 @@ const XForm: React.FC<XFormProps> = ({
             )}
           </div>
         ))}
-        {/* <button
-          type="submit"
-          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
-        >
-          Submit
-        </button> */}
       </form>
 
-      {/* Individual download buttons */}
+      {/* Download buttons */}
       <div className="mt-6 flex space-x-4">
         <button
           onClick={downloadJSON}

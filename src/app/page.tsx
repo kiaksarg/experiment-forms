@@ -200,9 +200,14 @@ export default function Home() {
 
   const handleFormClick = (formId: string) => {
     setActiveFormId(formId);
-    const index = allFormsInDisplayOrder.findIndex((f) => f.id === formId);
-    if (index >= 0) {
-      formContainerRefs[index].current?.scrollIntoView({ behavior: "smooth" });
+    const localIndex = activeGroupFormsInOrder.findIndex(
+      (f) => f.id === formId
+    );
+    console.log("Scrolling to local index:", localIndex, formId);
+    if (localIndex >= 0 && activeFormContainerRefs[localIndex]?.current) {
+      activeFormContainerRefs[localIndex].current.scrollIntoView({
+        behavior: "smooth",
+      });
     }
   };
 
@@ -222,53 +227,6 @@ export default function Home() {
   );
 
   // Intersection Observers for groups and forms
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const gIndex = Number(
-              entry.target.getAttribute("data-group-index")
-            );
-            setActiveGroup(orderedGroups[gIndex]);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    groupContainerRefs.forEach((ref, idx) => {
-      if (ref.current) {
-        ref.current.setAttribute("data-group-index", idx.toString());
-        obs.observe(ref.current);
-      }
-    });
-    return () => obs.disconnect();
-  }, [groupContainerRefs, orderedGroups]);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const fIndex = Number(entry.target.getAttribute("data-form-index"));
-            const formObj = allFormsInDisplayOrder[fIndex];
-            if (formObj && formObj.id !== undefined)
-              setActiveFormId(formObj.id);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    formContainerRefs.forEach((ref, idx) => {
-      if (ref.current) {
-        ref.current.setAttribute("data-form-index", idx.toString());
-        obs.observe(ref.current);
-      }
-    });
-    return () => obs.disconnect();
-  }, [formContainerRefs, allFormsInDisplayOrder]);
 
   // Basic resets and downloads
   const handleGlobalReset = () => {
@@ -374,6 +332,58 @@ export default function Home() {
     setFormVersion(Date.now());
   };
 
+  // When activeGroup changes, set the first form in that group as active and scroll to it.
+  useEffect(() => {
+    const groupFormIds = groupFormsOrder[activeGroup] || [];
+    if (groupFormIds.length > 0) {
+      const firstFormId = groupFormIds[0];
+      setActiveFormId(firstFormId);
+      const index = allFormsInDisplayOrder.findIndex(
+        (f) => f.id === firstFormId
+      );
+      if (index >= 0 && formContainerRefs[index].current) {
+        formContainerRefs[index].current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [activeGroup, groupFormsOrder, allFormsInDisplayOrder, formContainerRefs]);
+
+  const activeGroupFormsInOrder = useMemo(() => {
+    return (groupFormsOrder[activeGroup] || [])
+      .map((fid) => allForms.find((f) => f.id === fid))
+      .filter(Boolean) as XFormData[];
+  }, [activeGroup, groupFormsOrder, allForms]);
+
+  const activeFormContainerRefs = useMemo(() => {
+    return activeGroupFormsInOrder.map(() => createRef<HTMLDivElement>());
+  }, [activeGroupFormsInOrder]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const localIndex = Number(
+              entry.target.getAttribute("data-form-index")
+            );
+            const formObj = activeGroupFormsInOrder[localIndex];
+            if (formObj && formObj.id) {
+              setActiveFormId(formObj.id);
+            }
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: "0px 0px -50% 0px" }
+    );
+
+    activeFormContainerRefs.forEach((ref, idx) => {
+      if (ref.current) {
+        ref.current.setAttribute("data-form-index", idx.toString());
+        observer.observe(ref.current);
+      }
+    });
+    return () => observer.disconnect();
+  }, [activeFormContainerRefs, activeGroupFormsInOrder]);
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-400 mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
@@ -397,18 +407,32 @@ export default function Home() {
         <div className="md:col-span-3">
           <div className="bg-white shadow-lg rounded-lg p-8">
             <h2 className="text-xl font-bold mb-4">{`Group: ${activeGroup}`}</h2>
-            {(groupFormsOrder[activeGroup] || []).map((fid) => {
-              const formObj = allForms.find((ff) => ff.id === fid);
-              if (!formObj) return null;
-              const absoluteIndex = allFormsInDisplayOrder.indexOf(formObj);
+            {activeGroupFormsInOrder.map((formObj, localIndex) => {
               return (
-                <div key={fid} className="mb-6">
+                <div
+                  key={formObj.id}
+                  ref={activeFormContainerRefs[localIndex]}
+                  data-form-index={localIndex}
+                  className="mb-6"
+                >
                   <XForm
-                    key={`${fid}-${formVersion}`}
+                    key={`${formObj.id}-${formVersion}`}
                     data={formObj}
-                    initialData={formResponses[absoluteIndex]}
-                    onSubmit={formCallbacks[absoluteIndex].onSubmit}
-                    onChange={formCallbacks[absoluteIndex].onChange}
+                    initialData={
+                      formResponses[
+                        allForms.findIndex((f) => f.id === formObj.id)
+                      ]
+                    }
+                    onSubmit={
+                      formCallbacks[
+                        allForms.findIndex((f) => f.id === formObj.id)
+                      ].onSubmit
+                    }
+                    onChange={
+                      formCallbacks[
+                        allForms.findIndex((f) => f.id === formObj.id)
+                      ].onChange
+                    }
                   />
                 </div>
               );
@@ -417,7 +441,7 @@ export default function Home() {
         </div>
 
         {/* RIGHT COL: Participant details + Active State Info + Saved States + Download/Reset */}
-        <div className="md:col-span-1 space-y-4">
+        <div className="md:col-span-1 space-y-4 md:sticky md:top-0 md:max-h-screen md:overflow-y-auto">
           {/* Participant info */}
           <div className="bg-white shadow-lg rounded-lg p-8">
             <label
@@ -445,6 +469,27 @@ export default function Home() {
               value={overallComment}
               onChange={(e) => setOverallComment(e.target.value)}
             />
+          </div>
+          {/* Download & Reset */}
+          <div className="bg-white shadow-lg rounded-lg p-8">
+            <button
+              onClick={downloadAggregatedJSON}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
+            >
+              Download JSON
+            </button>
+            <button
+              onClick={downloadAggregatedCSV}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full mt-4"
+            >
+              Download CSV
+            </button>
+            <button
+              onClick={handleGlobalReset}
+              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition w-full mt-4"
+            >
+              Reset All Forms
+            </button>
           </div>
 
           {/* Active State Info */}
@@ -501,28 +546,6 @@ export default function Home() {
                 </ul>
               )}
             </div>
-          </div>
-
-          {/* Download & Reset */}
-          <div className="bg-white shadow-lg rounded-lg p-8">
-            <button
-              onClick={downloadAggregatedJSON}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
-            >
-              Download JSON
-            </button>
-            <button
-              onClick={downloadAggregatedCSV}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full mt-4"
-            >
-              Download CSV
-            </button>
-            <button
-              onClick={handleGlobalReset}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition w-full mt-4"
-            >
-              Reset All Forms
-            </button>
           </div>
         </div>
       </div>
