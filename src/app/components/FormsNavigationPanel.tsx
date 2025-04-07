@@ -93,7 +93,7 @@ const FormsNavigationPanel: React.FC<FormsNavigationPanelProps> = ({
         strategy={verticalListSortingStrategy}
       >
         <div className="sticky top-95 bg-white shadow-lg rounded-lg p-4 space-y-4 mt-4">
-          <h4 className="text-lg font-bold text-gray-900">Forms in Group</h4>
+          <h4 className="text-md font-bold text-gray-900">Forms</h4>
           <ul className="space-y-2">
             {forms.map((item) => (
               <FormItem

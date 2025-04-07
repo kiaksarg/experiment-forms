@@ -27,6 +27,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <header className="bg-gray-100 p-4 text-center text-black">
+          <h1 className="text-2xl font-bold">
+            Thank You, Amazing Participants! Sepas 🙌✨ 
+          </h1>
+          <p className="mt-2">
+            We’re so grateful for your time and input—it means the world to us! 🌟😊
+          </p>
+        </header>
         {children}
       </body>
     </html>

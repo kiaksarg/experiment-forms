@@ -14,7 +14,7 @@ const rawForms = [
   { ...usabilityQuestionsFormData, task: "Usability Auto", groupId: "Auto" },
   { ...csqFormData, task: "CSQ-VR Before Manual", groupId: "Manual" },
   { ...csqFormData, task: "CSQ-VR After Manual", groupId: "Manual" },
-  { ...nasaTlxFormData, task: "Nasa TLX Auto", groupId: "Manual" },
+  { ...nasaTlxFormData, task: "Nasa TLX Manual", groupId: "Manual" },
   { ...usabilityQuestionsFormData, task: "Usability Manual", groupId: "Manual" },
   { ...csqFormData, task: "CSQ-VR Before Offset", groupId: "Offset" },
   { ...csqFormData, task: "CSQ-VR After Offset", groupId: "Offset" },

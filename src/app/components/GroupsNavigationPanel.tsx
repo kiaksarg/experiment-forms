@@ -78,7 +78,7 @@ const GroupsNavigationPanel: React.FC<GroupsNavigationPanelProps> = ({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={groups} strategy={verticalListSortingStrategy}>
         <div className="sticky top-4 bg-white shadow-lg rounded-lg p-6 space-y-4">
-          <h4 className="text-lg font-bold text-gray-900">Groups</h4>
+          <h4 className="text-md font-bold text-gray-900">Groups</h4>
           <ul className="space-y-2">
             {groups.map((gid) => (
               <GroupItem

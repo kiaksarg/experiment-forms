@@ -372,7 +372,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.3, rootMargin: "0px 0px -50% 0px" }
+      { threshold: 0.3, rootMargin: "0px" }
     );
 
     activeFormContainerRefs.forEach((ref, idx) => {
@@ -385,8 +385,8 @@ export default function Home() {
   }, [activeFormContainerRefs, activeGroupFormsInOrder]);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-400 mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
+    <div className="min-h-screen bg-gray-100 py-4 px-4">
+      <div className="max-w-360 mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* LEFT COL: Groups nav + Forms nav for the active group */}
         <div className="md:col-span-1 space-y-4">
           <GroupsNavigationPanel
@@ -406,7 +406,7 @@ export default function Home() {
         {/* MIDDLE COL: Center display of only the active group */}
         <div className="md:col-span-3">
           <div className="bg-white shadow-lg rounded-lg p-8">
-            <h2 className="text-xl font-bold mb-4">{`Group: ${activeGroup}`}</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-500">{`Group: ${activeGroup}`}</h2>
             {activeGroupFormsInOrder.map((formObj, localIndex) => {
               return (
                 <div
@@ -441,11 +441,11 @@ export default function Home() {
         </div>
 
         {/* RIGHT COL: Participant details + Active State Info + Saved States + Download/Reset */}
-        <div className="md:col-span-1 space-y-4 md:sticky md:top-0 md:max-h-screen md:overflow-y-auto">
+        <div className="md:col-span-1 space-y-4 md:sticky md:top-0 md:max-h-screen md:overflow-y-auto pr-4">
           {/* Participant info */}
           <div className="bg-white shadow-lg rounded-lg p-8">
             <label
-              className="block text-lg font-bold text-black mb-2"
+              className="block text-md font-bold text-black mb-2"
               htmlFor="participantName"
             >
               Participant Name
@@ -458,10 +458,10 @@ export default function Home() {
               onChange={(e) => setParticipantName(e.target.value)}
             />
             <label
-              className="block text-lg font-bold text-black mb-2"
+              className="block text-md font-bold text-black mb-2"
               htmlFor="overallComment"
             >
-              Overall Comment
+              Comment
             </label>
             <textarea
               id="overallComment"
@@ -494,7 +494,7 @@ export default function Home() {
 
           {/* Active State Info */}
           <div className="bg-white shadow-lg rounded-lg p-8">
-            <h3 className="text-xl font-bold mb-2">Active State</h3>
+            <h3 className="text-md font-bold mb-2 text-black">Active State</h3>
             {activeState ? (
               <p className="text-black text-sm">
                 {activeState.participantName} – {activeState.id}
@@ -512,7 +512,7 @@ export default function Home() {
 
           {/* Saved States List */}
           <div className="bg-white shadow-lg rounded-lg p-8">
-            <h3 className="text-xl font-bold mb-2">Saved States</h3>
+            <h3 className="text-md font-bold mb-2 text-black">Saved States</h3>
             <div className="text-black h-40 overflow-y-scroll">
               {savedStates.length === 0 ? (
                 <p className="text-gray-600">No saved states found.</p>
