@@ -5,7 +5,7 @@ export const usabilityQuestionsFormData: XFormData = {
   title: "Usability Questions",
   fields: [
     {
-      id: "headControl",
+      id: "control",
       question: "I felt in control of the head rotation.",
       options: [
         { value: 1, label: "Strongly disagree" },
@@ -31,7 +31,7 @@ export const usabilityQuestionsFormData: XFormData = {
       ],
     },
     {
-      id: "easyTarget",
+      id: "ease",
       question: "It was easy to select targets.",
       options: [
         { value: 1, label: "Strongly disagree" },
@@ -44,7 +44,7 @@ export const usabilityQuestionsFormData: XFormData = {
       ],
     },
     {
-      id: "preciseTarget",
+      id: "precision",
       question: "I could select targets precisely.",
       options: [
         { value: 1, label: "Strongly disagree" },
@@ -57,7 +57,7 @@ export const usabilityQuestionsFormData: XFormData = {
       ],
     },
     {
-      id: "mismatch",
+      id: "perceived offset",
       question:
         "I did not experience an uncomfortable mismatch between my physical head movement and the resulting virtual rotation.",
       options: [
@@ -85,7 +85,7 @@ export const usabilityQuestionsFormData: XFormData = {
       ],
     },
     {
-      id: "natural",
+      id: "naturalness",
       question: "Rotating the head with the technique is natural.",
       options: [
         { value: 1, label: "Strongly disagree" },
