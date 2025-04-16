@@ -252,7 +252,13 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "aggregated_responses.json";
+    // Get current date and time and format it for the filename (e.g., 2025-04-08T14-30-00-000Z)
+    const dateTimeStr = new Date().toISOString().replace(/[:.]/g, "-");
+    // Set the filename using participantName and dateTimeStr
+    a.download = `${participantName.replace(
+      " ",
+      "_"
+    )}_${dateTimeStr}_aggregated_responses.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -289,7 +295,11 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "aggregated_responses.csv";
+    const dateTimeStr = new Date().toISOString().replace(/[:.]/g, "-");
+    a.download = `${participantName.replace(
+      " ",
+      "_"
+    )}_${dateTimeStr}_aggregated_responses.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
