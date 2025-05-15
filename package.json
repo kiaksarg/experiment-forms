@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
+    "dev:t": "next dev --turbopack",
+    "debug:chrome": "\"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\" --remote-debugging-port=9222 --user-data-dir=\"C:\\\\chrome-debug\" http://localhost:3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

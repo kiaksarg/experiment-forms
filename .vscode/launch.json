@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Chrome",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}",
+            // optional: only attach when the URL matches, e.g. your dev server
+            "urlFilter": "http://localhost:3000/*",
+            // optional: map out-of-src files (if you’re using a monorepo, etc.)
+            "pathMapping": {
+                "/": "${workspaceFolder}"
+            }
+        }
+    ]
+}

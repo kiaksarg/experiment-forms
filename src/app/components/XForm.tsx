@@ -12,6 +12,7 @@ interface XFormProps {
   onSubmit?: (data: XFormSubmitData) => void;
   onChange?: (data: XFormSubmitData) => void;
   initialData?: XFormSubmitData;
+  participantName: string;
 }
 
 // Helper function to initialize default responses for range fields.
@@ -38,6 +39,7 @@ const XForm: React.FC<XFormProps> = ({
   onSubmit,
   onChange,
   initialData,
+  participantName,
 }) => {
   const [taskName, setTaskName] = useState(
     initialData?.task || data.task || ""
@@ -109,7 +111,12 @@ const XForm: React.FC<XFormProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${data.title.replace(/ /g, "_")}_responses.json`;
+    const dateTimeStr = new Date().toISOString().replace(/[:.]/g, "-");
+
+    a.download = `${participantName.replace(" ", "_")}_${data.title.replace(
+      / /g,
+      "_"
+    )}_${taskName.replace(/ /g, "_")}_responses_${dateTimeStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -27,7 +27,7 @@ export interface FormItem {
 }
 
 export interface XFormData {
-  id?: string;
+  id: string;
   groupId?: string;
   name: string;
   task?: string;

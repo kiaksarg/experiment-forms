@@ -16,6 +16,7 @@ import XForm, { XFormSubmitData } from "./components/XForm";
 
 import GroupsNavigationPanel from "./components/GroupsNavigationPanel";
 import FormsNavigationPanel from "./components/FormsNavigationPanel";
+import ExportCSQVR from "./components/ExportCSQVR";
 
 const ACTIVE_STATE_KEY = "experiment_form_active_state";
 const SAVED_STATES_KEY = "experiment_form_saved_states";
@@ -433,6 +434,7 @@ export default function Home() {
                         allForms.findIndex((f) => f.id === formObj.id)
                       ]
                     }
+                    participantName={participantName}
                     onSubmit={
                       formCallbacks[
                         allForms.findIndex((f) => f.id === formObj.id)
@@ -482,6 +484,10 @@ export default function Home() {
           </div>
           {/* Download & Reset */}
           <div className="bg-white shadow-lg rounded-lg p-8">
+            <ExportCSQVR
+              activeState={activeState}
+              allFormsInDisplayOrder={allFormsInDisplayOrder}
+            />
             <button
               onClick={downloadAggregatedJSON}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
