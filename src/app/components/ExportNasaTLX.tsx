@@ -1,6 +1,7 @@
 import React from "react";
 import { XFormData } from "@/forms/formData";
 import { XFormSubmitData } from "./XForm";
+import { extractSubjectNumber } from "@/utils";
 
 // Mirror the SavedState type from Home.tsx
 export type SavedState = {
@@ -68,7 +69,7 @@ const ExportNasaTLX: React.FC<ExportNasaTLXProps> = ({ activeState, allFormsInDi
         (mental + physical + temporal + performance + effort + frustration) / 6;
 
       return {
-        subject: activeState.participantName,
+        subject: extractSubjectNumber(activeState.participantName),
         technique,
         mental,
         physical,

@@ -1,6 +1,7 @@
 import React from "react";
 import { XFormData } from "@/forms/formData";
 import { XFormSubmitData } from "./XForm";
+import { extractSubjectNumber } from "@/utils";
 
 // Mirror the SavedState type from Home.tsx
 export type SavedState = {
@@ -95,7 +96,7 @@ const ExportCSQVR: React.FC<ExportCSQVRProps> = ({
 
         if (!grouped[technique]) grouped[technique] = [];
         grouped[technique].push({
-          subject: activeState.participantName,
+          subject: extractSubjectNumber(activeState.participantName),
           technique,
           time,
           total,
@@ -164,5 +165,7 @@ const ExportCSQVR: React.FC<ExportCSQVRProps> = ({
     </button>
   );
 };
+
+
 
 export default ExportCSQVR;

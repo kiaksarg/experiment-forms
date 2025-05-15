@@ -1,6 +1,7 @@
 import React from "react";
 import { XFormData } from "@/forms/formData";
 import { XFormSubmitData } from "./XForm";
+import { extractSubjectNumber } from "@/utils";
 
 // Mirror the SavedState type from Home.tsx
 export type SavedState = {
@@ -65,7 +66,7 @@ const ExportUsability: React.FC<ExportUsabilityProps> = ({
       const naturalness = Number(resp.naturalness?.selected) || 0;
 
       return {
-        subject: activeState.participantName,
+        subject: extractSubjectNumber(activeState.participantName),
         technique,
         control,
         comfort,
