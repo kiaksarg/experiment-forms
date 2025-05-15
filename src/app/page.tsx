@@ -18,6 +18,7 @@ import GroupsNavigationPanel from "./components/GroupsNavigationPanel";
 import FormsNavigationPanel from "./components/FormsNavigationPanel";
 import ExportCSQVR from "./components/ExportCSQVR";
 import ExportNasaTLX from "./components/ExportNasaTLX";
+import ExportUsability from "./components/ExportUsability";
 
 const ACTIVE_STATE_KEY = "experiment_form_active_state";
 const SAVED_STATES_KEY = "experiment_form_saved_states";
@@ -485,6 +486,10 @@ export default function Home() {
           </div>
           {/* Download & Reset */}
           <div className="bg-white shadow-lg rounded-lg p-8">
+            <ExportUsability
+              activeState={activeState}
+              allFormsInDisplayOrder={allFormsInDisplayOrder}
+            />
             <ExportNasaTLX
               activeState={activeState}
               allFormsInDisplayOrder={allFormsInDisplayOrder}
