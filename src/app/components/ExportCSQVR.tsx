@@ -160,7 +160,7 @@ const ExportCSQVR: React.FC<ExportCSQVRProps> = ({
       onClick={handleExport}
       className="bg-blue-500 text-white mb-4 py-2 rounded hover:bg-blue-600 transition w-full"
     >
-      CSQ-VR report
+      CSQ-VR Report
     </button>
   );
 };
